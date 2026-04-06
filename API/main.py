@@ -1,10 +1,11 @@
 import os
 import sys
+import base64
+from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 
-# Allow importing parser from parent folder
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
 from parser.parse_edi import parse_edi_text
 
 app = FastAPI(
@@ -13,39 +14,32 @@ app = FastAPI(
     description="API to parse 835 and 837 EDI files"
 )
 
+class ParseRequest(BaseModel):
+    file_name: str
+    file_content: str
 
 @app.get("/")
 def home():
     return {"status": "running", "message": "EDI Parser API is live"}
 
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-
 @app.post("/parse")
-async def parse_file(file: UploadFile = File(...)):
+async def parse_file(payload: ParseRequest):
     try:
-        # Validate file
-        if not file:
-            raise HTTPException(status_code=400, detail="No file uploaded")
+        if not payload.file_content:
+            raise HTTPException(status_code=400, detail="No file content provided")
 
-        content = await file.read()
-
-        if not content:
-            raise HTTPException(status_code=400, detail="Empty file uploaded")
-
-        # Decode file safely
         try:
-            text = content.decode("utf-8", errors="ignore")
+            decoded_bytes = base64.b64decode(payload.file_content)
+            text = decoded_bytes.decode("utf-8", errors="ignore")
         except Exception:
-            raise HTTPException(status_code=400, detail="Unable to decode file")
+            text = payload.file_content
 
-        # Parse file
-        result = parse_edi_text(text, file.filename)
+        result = parse_edi_text(text, payload.file_name)
 
-        # Handle unsupported format
         if result.get("status") == "error":
             raise HTTPException(status_code=400, detail=result.get("message"))
 
@@ -53,9 +47,5 @@ async def parse_file(file: UploadFile = File(...)):
 
     except HTTPException:
         raise
-
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal error while parsing: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Internal error while parsing: {str(e)}")
