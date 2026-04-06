@@ -32,13 +32,19 @@ async def parse_file(payload: ParseRequest):
         if not payload.file_content:
             raise HTTPException(status_code=400, detail="No file content provided")
 
-        try:
-            decoded_bytes = base64.b64decode(payload.file_content)
-            text = decoded_bytes.decode("utf-8", errors="ignore")
-        except Exception:
-            text = payload.file_content
+        raw_content = payload.file_content.strip()
 
-        result = parse_edi_text(text, payload.file_name)
+        # First try plain text directly
+        result = parse_edi_text(raw_content, payload.file_name)
+
+        # If plain text didn't work, try strict base64 decode
+        if result.get("status") == "error":
+            try:
+                decoded_bytes = base64.b64decode(raw_content, validate=True)
+                decoded_text = decoded_bytes.decode("utf-8", errors="ignore")
+                result = parse_edi_text(decoded_text, payload.file_name)
+            except Exception:
+                pass
 
         if result.get("status") == "error":
             raise HTTPException(status_code=400, detail=result.get("message"))
