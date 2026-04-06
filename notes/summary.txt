@@ -1,0 +1,41 @@
+1. What current Denial Navigator parsing does
+reads 835 file through SharePoint/workflows
+uses AI to parse header
+uses AI to parse each claim
+stores results in Dataverse
+uses AI for recommendations
+2. What issues I observed
+parsing depends too much on AI
+output cleanup is fragile
+upload experience is not clean
+SharePoint permissions are messy
+end-to-end status is not very visible
+3. What my parser prototype now does
+reads 835 text file directly
+extracts payment amount, trace number, payer
+extracts multiple claims
+attaches patient names
+extracts CAS denial details
+extracts RARC remark codes
+groups denial totals
+saves clean JSON output
+4. What can be improved next
+external code lookup for more CARC/RARC codes
+support more 835 variations
+plug parser into a sandbox flow
+keep AI only for recommendations
+
+
+Current system
+file intake through embedded SharePoint
+AI used for header parsing
+AI used for claim parsing
+AI used for recommendations
+flow behavior is harder to debug
+Your prototype
+structured parsing for 835 file
+extracts payment, payer, claims, patient, CAS, RARC
+produces clean JSON
+handles multiple claims
+easier to test and maintain
+

@@ -1,0 +1,90 @@
+{
+    "file_summary": {
+        "payment_amount": "500.00",
+        "trace_number": "1234567890",
+        "payer_name": "TEST INSURANCE COMPANY"
+    },
+    "summary": {
+        "total_claims": 2,
+        "total_billed": 500.0,
+        "total_paid": 250.0,
+        "total_remaining_or_denied": 250.0,
+        "top_denial_codes": {
+            "45": 80.0,
+            "250": 150.0,
+            "1": 20.0
+        }
+    },
+    "claims": [
+        {
+            "claim_id": "CLAIM001",
+            "status": "1",
+            "billed": "300.00",
+            "paid": "100.00",
+            "remaining_or_denied": "200.00",
+            "patient_last_name": "DOE",
+            "patient_first_name": "JOHN",
+            "cas": [
+                {
+                    "group_code": "CO",
+                    "reason_code": "45",
+                    "reason_meaning": "Charge exceeds fee schedule or maximum allowable amount.",
+                    "amount": "50.00"
+                },
+                {
+                    "group_code": "CO",
+                    "reason_code": "250",
+                    "reason_meaning": "Claim/service not covered or not payable under payer policy/contract.",
+                    "amount": "150.00"
+                }
+            ],
+            "rarc": [
+                {
+                    "code": "N178",
+                    "meaning": "Patient has not met eligibility or benefit requirements."
+                },
+                {
+                    "code": "MA48",
+                    "meaning": "Missing/incomplete/invalid billing provider taxonomy."
+                }
+            ],
+            "grouped_denials": {
+                "45": 50.0,
+                "250": 150.0
+            }
+        },
+        {
+            "claim_id": "CLAIM002",
+            "status": "1",
+            "billed": "200.00",
+            "paid": "150.00",
+            "remaining_or_denied": "50.00",
+            "patient_last_name": "SMITH",
+            "patient_first_name": "JANE",
+            "cas": [
+                {
+                    "group_code": "PR",
+                    "reason_code": "1",
+                    "reason_meaning": "Meaning not mapped yet.",
+                    "amount": "20.00"
+                },
+                {
+                    "group_code": "CO",
+                    "reason_code": "45",
+                    "reason_meaning": "Charge exceeds fee schedule or maximum allowable amount.",
+                    "amount": "30.00"
+                }
+            ],
+            "rarc": [
+                {
+                    "code": "N706",
+                    "meaning": "Incomplete or invalid documentation or supporting information."
+                }
+            ],
+            "grouped_denials": {
+                "1": 20.0,
+                "45": 30.0
+            }
+        }
+    ]
+}

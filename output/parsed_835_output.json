@@ -1,0 +1,64 @@
+{
+    "file_summary": {
+        "payment_amount": "200.00",
+        "trace_number": "2345678901",
+        "payer_name": "NORTH DAKOTA MEDICAID"
+    },
+    "summary": {
+        "total_claims": 1,
+        "total_billed": 300.0,
+        "total_paid": 100.0,
+        "total_remaining_or_denied": 200.0,
+        "top_denial_codes": {
+            "250": 166.67,
+            "45": 33.33
+        }
+    },
+    "claims": [
+        {
+            "claim_id": "843890NMN87",
+            "status": "1",
+            "billed": "300.00",
+            "paid": "100.00",
+            "remaining_or_denied": "200.00",
+            "patient_last_name": "MARTIN",
+            "patient_first_name": "DEAN",
+            "cas": [
+                {
+                    "group_code": "CO",
+                    "reason_code": "250",
+                    "reason_meaning": "Claim/service not covered or not payable under payer policy/contract.",
+                    "amount": "100.00"
+                },
+                {
+                    "group_code": "CO",
+                    "reason_code": "45",
+                    "reason_meaning": "Charge exceeds fee schedule or maximum allowable amount.",
+                    "amount": "33.33"
+                },
+                {
+                    "group_code": "CO",
+                    "reason_code": "250",
+                    "reason_meaning": "Claim/service not covered or not payable under payer policy/contract.",
+                    "amount": "33.33"
+                },
+                {
+                    "group_code": "CO",
+                    "reason_code": "250",
+                    "reason_meaning": "Claim/service not covered or not payable under payer policy/contract.",
+                    "amount": "33.34"
+                }
+            ],
+            "rarc": [
+                {
+                    "code": "N178",
+                    "meaning": "Patient has not met eligibility or benefit requirements."
+                }
+            ],
+            "grouped_denials": {
+                "250": 166.67,
+                "45": 33.33
+            }
+        }
+    ]
+}

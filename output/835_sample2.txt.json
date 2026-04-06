@@ -1,0 +1,51 @@
+{
+    "file_name": "835_sample2.txt",
+    "file_type": "835",
+    "status": "success",
+    "file_summary": {
+        "payment_amount": 500.0,
+        "trace_number": "1234567890",
+        "payer_name": "TEST INSURANCE COMPANY"
+    },
+    "summary": {
+        "total_claims": 2
+    },
+    "claims": [
+        {
+            "claim_id": "CLAIM001",
+            "billed": 300.0,
+            "paid": 100.0,
+            "remaining": 200.0,
+            "patient_first_name": "JOHN",
+            "patient_last_name": "DOE",
+            "denials": [
+                {
+                    "code": "45",
+                    "amount": 50.0
+                },
+                {
+                    "code": "250",
+                    "amount": 150.0
+                }
+            ]
+        },
+        {
+            "claim_id": "CLAIM002",
+            "billed": 200.0,
+            "paid": 150.0,
+            "remaining": 50.0,
+            "patient_first_name": "JANE",
+            "patient_last_name": "SMITH",
+            "denials": [
+                {
+                    "code": "1",
+                    "amount": 20.0
+                },
+                {
+                    "code": "45",
+                    "amount": 30.0
+                }
+            ]
+        }
+    ]
+}

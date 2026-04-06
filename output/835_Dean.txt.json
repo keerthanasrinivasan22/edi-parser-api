@@ -1,0 +1,41 @@
+{
+    "file_name": "835_Dean.txt",
+    "file_type": "835",
+    "status": "success",
+    "file_summary": {
+        "payment_amount": 200.0,
+        "trace_number": "2345678901",
+        "payer_name": "NORTH DAKOTA MEDICAID"
+    },
+    "summary": {
+        "total_claims": 1
+    },
+    "claims": [
+        {
+            "claim_id": "843890NMN87",
+            "billed": 300.0,
+            "paid": 100.0,
+            "remaining": 200.0,
+            "patient_first_name": "DEAN",
+            "patient_last_name": "MARTIN",
+            "denials": [
+                {
+                    "code": "250",
+                    "amount": 100.0
+                },
+                {
+                    "code": "45",
+                    "amount": 33.33
+                },
+                {
+                    "code": "250",
+                    "amount": 33.33
+                },
+                {
+                    "code": "250",
+                    "amount": 33.34
+                }
+            ]
+        }
+    ]
+}
