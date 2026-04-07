@@ -35,6 +35,7 @@ def parse_835_text(content, file_name="file.txt"):
 
     claims = []
     current_claim = None
+    current_service_line_code = ""
 
     for seg in segments:
         parts = seg.split("*")
@@ -56,6 +57,8 @@ def parse_835_text(content, file_name="file.txt"):
                     f"{current_claim['patient_first_name']} {current_claim['patient_last_name']}"
                 ).strip()
                 claims.append(current_claim)
+
+            current_service_line_code = ""
 
             current_claim = {
                 "claim_id": parts[1] if len(parts) > 1 else "",
@@ -82,18 +85,17 @@ def parse_835_text(content, file_name="file.txt"):
 
         # Claim date
         elif seg.startswith("DTM") and current_claim:
-            # Common 835 date qualifiers:
-            # 232 = claim statement period start
-            # 233 = claim statement period end
-            # 050 = received date
             if len(parts) > 2 and parts[1] in ["232", "233", "050"]:
                 if not current_claim["claim_date"]:
                     current_claim["claim_date"] = parts[2]
 
+        # Service line
+        elif seg.startswith("SVC") and current_claim:
+            # Example: SVC*HC:99215*100.00*66.66
+            current_service_line_code = parts[1] if len(parts) > 1 else ""
+
         # CAS / denial info
         elif seg.startswith("CAS") and current_claim:
-            # CAS structure often repeats code/amount pairs:
-            # CAS*group*reason*amount*qty*reason*amount*qty...
             group_code = parts[1] if len(parts) > 1 else ""
 
             i = 2
@@ -104,11 +106,10 @@ def parse_835_text(content, file_name="file.txt"):
                 current_claim["denials"].append({
                     "group_code": group_code,
                     "code": reason_code,
-                    "amount": amount
+                    "amount": amount,
+                    "service_line_code": current_service_line_code
                 })
 
-                # Simple deductible handling
-                # Common deductible reason code is 1
                 if reason_code == "1":
                     current_claim["deductible"] += amount
 
@@ -198,7 +199,6 @@ def parse_837_text(content, file_name="file.txt"):
 
         # Service date
         elif seg.startswith("DTP") and current_claim:
-            # Common service date qualifier in 837 = 472
             if len(parts) > 3 and parts[1] == "472":
                 current_claim["service_date"] = parts[3]
 
