@@ -25,6 +25,71 @@ def detect_edi_type(content):
     return "unknown"
 
 
+def generate_ai_recommendation(claim: dict) -> str:
+    denials = claim.get("denials", [])
+    rarc_list = claim.get("rarc", [])
+
+    issues = []
+    actions = []
+
+    for denial in denials:
+        group = str(denial.get("group_code", "")).strip().upper()
+        code = str(denial.get("code", "")).strip()
+
+        if group == "PR" and code == "1":
+            issues.append("patient deductible responsibility")
+            actions.append("verify patient deductible status and bill the patient if appropriate")
+
+        elif group == "CO" and code == "45":
+            issues.append("charge exceeds payer fee schedule or allowable amount")
+            actions.append("review payer contracted rate and compare billed amount to allowable fee schedule")
+
+        elif group == "CO" and code == "250":
+            issues.append("claim may be missing or have incorrect supporting documentation")
+            actions.append("review documentation requirements and ensure all required attachments are submitted")
+
+        else:
+            issues.append(f"denial code {group}-{code}")
+            actions.append(f"review payer policy for denial code {group}-{code}")
+
+    for rarc in rarc_list:
+        rarc_code = str(rarc.get("code", "")).strip().upper()
+
+        if rarc_code == "N178":
+            issues.append("missing pre-operative images or visual field results")
+            actions.append("submit the required pre-operative images or visual field results before resubmission")
+
+        elif rarc_code == "N185":
+            issues.append("the service should not be resubmitted as the same claim or service")
+            actions.append("avoid direct resubmission and follow payer-specific correction or appeal workflow")
+
+        elif rarc_code:
+            actions.append(f"review payer remark code {rarc_code} for additional guidance")
+
+    def dedupe(seq):
+        seen = set()
+        out = []
+        for item in seq:
+            if item and item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
+
+    issues = dedupe(issues)
+    actions = dedupe(actions)
+
+    if not issues and not actions:
+        return (
+            "Likely issue: Unable to determine a specific denial pattern. "
+            "Recommended action: Review denial and remark codes and confirm payer-specific billing requirements."
+        )
+
+    issue_text = "; ".join(issues[:3])
+    action_text = "; ".join(actions[:3])
+
+    return f"Likely issue: {issue_text}. Recommended action: {action_text}."
+
+
 # ------------------ 835 ------------------
 def parse_835_text(content, file_name="file.txt"):
     segments = split_segments(content)
@@ -56,6 +121,7 @@ def parse_835_text(content, file_name="file.txt"):
                 current_claim["patient_name"] = (
                     f"{current_claim['patient_first_name']} {current_claim['patient_last_name']}"
                 ).strip()
+                current_claim["ai_recommendation"] = generate_ai_recommendation(current_claim)
                 claims.append(current_claim)
 
             current_service_line_code = ""
@@ -74,7 +140,8 @@ def parse_835_text(content, file_name="file.txt"):
                 "remaining": safe_float(parts[5]) if len(parts) > 5 else 0.0,
                 "deductible": 0.0,
                 "denials": [],
-                "rarc": []
+                "rarc": [],
+                "ai_recommendation": ""
             }
 
         # Patient info
@@ -91,7 +158,6 @@ def parse_835_text(content, file_name="file.txt"):
 
         # Service line
         elif seg.startswith("SVC") and current_claim:
-            # Example: SVC*HC:99215*100.00*66.66
             current_service_line_code = parts[1] if len(parts) > 1 else ""
 
         # CAS / denial info
@@ -127,6 +193,7 @@ def parse_835_text(content, file_name="file.txt"):
         current_claim["patient_name"] = (
             f"{current_claim['patient_first_name']} {current_claim['patient_last_name']}"
         ).strip()
+        current_claim["ai_recommendation"] = generate_ai_recommendation(current_claim)
         claims.append(current_claim)
 
     return {
