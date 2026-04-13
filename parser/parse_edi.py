@@ -25,6 +25,13 @@ def detect_edi_type(content):
     return "unknown"
 
 
+def normalize_yyyymmdd(value):
+    value = str(value).strip()
+    if len(value) == 8 and value.isdigit():
+        return f"{value[0:4]}-{value[4:6]}-{value[6:8]}"
+    return value
+
+
 def generate_ai_recommendation(claim: dict) -> str:
     denials = claim.get("denials", [])
     rarc_list = claim.get("rarc", [])
@@ -224,6 +231,13 @@ def parse_837_text(content, file_name="file.txt"):
 
     claims = []
     current_claim = None
+    current_service = None
+
+    # values that may appear before CLM
+    pending_patient_first_name = ""
+    pending_patient_last_name = ""
+    pending_patient_dob = ""
+    pending_patient_gender = ""
 
     for seg in segments:
         parts = seg.split("*")
@@ -235,8 +249,30 @@ def parse_837_text(content, file_name="file.txt"):
         elif seg.startswith("NM1*40"):
             receiver = parts[3] if len(parts) > 3 else ""
 
+        # Subscriber / patient name
+        elif (seg.startswith("NM1*IL") or seg.startswith("NM1*QC")):
+            pending_patient_last_name = parts[3] if len(parts) > 3 else ""
+            pending_patient_first_name = parts[4] if len(parts) > 4 else ""
+
+            if current_claim:
+                current_claim["patient_last_name"] = pending_patient_last_name
+                current_claim["patient_first_name"] = pending_patient_first_name
+
+        # DOB / Gender
+        elif seg.startswith("DMG"):
+            pending_patient_dob = parts[2] if len(parts) > 2 else ""
+            pending_patient_gender = parts[3] if len(parts) > 3 else ""
+
+            if current_claim:
+                current_claim["patient_dob"] = pending_patient_dob
+                current_claim["patient_gender"] = pending_patient_gender
+
         # New claim
         elif seg.startswith("CLM"):
+            if current_service and current_claim:
+                current_claim["professional_services"].append(current_service)
+                current_service = None
+
             if current_claim:
                 current_claim["patient_name"] = (
                     f"{current_claim['patient_first_name']} {current_claim['patient_last_name']}"
@@ -247,33 +283,80 @@ def parse_837_text(content, file_name="file.txt"):
                 "claim_id": parts[1] if len(parts) > 1 else "",
                 "total_claim_charges": safe_float(parts[2]) if len(parts) > 2 else 0.0,
                 "service_date": "",
-                "patient_dob": "",
-                "patient_gender": "",
-                "patient_first_name": "",
-                "patient_last_name": "",
-                "patient_name": ""
+                "patient_dob": pending_patient_dob,
+                "patient_gender": pending_patient_gender,
+                "patient_first_name": pending_patient_first_name,
+                "patient_last_name": pending_patient_last_name,
+                "patient_name": "",
+                "professional_services": []
             }
 
-        # Patient name
-        elif seg.startswith("NM1*QC") and current_claim:
-            current_claim["patient_last_name"] = parts[3] if len(parts) > 3 else ""
-            current_claim["patient_first_name"] = parts[4] if len(parts) > 4 else ""
-
-        # Patient DOB/Gender
-        elif seg.startswith("DMG") and current_claim:
-            current_claim["patient_dob"] = parts[2] if len(parts) > 2 else ""
-            current_claim["patient_gender"] = parts[3] if len(parts) > 3 else ""
-
-        # Service date
+        # Claim/service date
         elif seg.startswith("DTP") and current_claim:
             if len(parts) > 3 and parts[1] == "472":
-                current_claim["service_date"] = parts[3]
+                if current_service:
+                    current_service["service_date"] = normalize_yyyymmdd(parts[3])
+                elif not current_claim.get("service_date"):
+                    current_claim["service_date"] = normalize_yyyymmdd(parts[3])
+
+        # Start of a professional service line
+        elif seg.startswith("LX") and current_claim:
+            if current_service:
+                current_claim["professional_services"].append(current_service)
+
+            current_service = {
+                "line_number": parts[1] if len(parts) > 1 else "",
+                "service_type": "",
+                "code": "",
+                "amount": 0.0,
+                "unit_type": "",
+                "units": "",
+                "modifier": "",
+                "description": "",
+                "service_date": ""
+            }
+
+        # Service details
+        elif seg.startswith("SV1") and current_claim:
+            if not current_service:
+                current_service = {
+                    "line_number": "",
+                    "service_type": "",
+                    "code": "",
+                    "amount": 0.0,
+                    "unit_type": "",
+                    "units": "",
+                    "modifier": "",
+                    "description": "",
+                    "service_date": ""
+                }
+
+            composite = parts[1] if len(parts) > 1 else ""
+            composite_parts = composite.split(":") if composite else []
+
+            current_service["service_type"] = composite_parts[0] if len(composite_parts) > 0 else ""
+            current_service["code"] = composite_parts[1] if len(composite_parts) > 1 else ""
+            current_service["modifier"] = composite_parts[2] if len(composite_parts) > 2 else ""
+            current_service["amount"] = safe_float(parts[2]) if len(parts) > 2 else 0.0
+            current_service["unit_type"] = parts[3] if len(parts) > 3 else ""
+            current_service["units"] = parts[4] if len(parts) > 4 else ""
+
+    if current_service and current_claim:
+        current_claim["professional_services"].append(current_service)
 
     if current_claim:
         current_claim["patient_name"] = (
             f"{current_claim['patient_first_name']} {current_claim['patient_last_name']}"
         ).strip()
         claims.append(current_claim)
+
+    # normalize dates after parsing
+    for claim in claims:
+        claim["patient_dob"] = normalize_yyyymmdd(claim.get("patient_dob", ""))
+        claim["service_date"] = normalize_yyyymmdd(claim.get("service_date", ""))
+
+        for svc in claim.get("professional_services", []):
+            svc["service_date"] = normalize_yyyymmdd(svc.get("service_date", ""))
 
     return {
         "file_name": file_name,
